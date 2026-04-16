@@ -16,7 +16,7 @@ def test_ready_contract(client):
 def test_login_and_me_contract(client):
     login_response = client.post(
         "/auth/login",
-        json={"email": "tenant@t1.test", "password": "Pass1234!"},
+        json={"email": "tenant@t1.example.com", "password": "Pass1234!"},
     )
     assert login_response.status_code == 200
 
@@ -40,21 +40,21 @@ def test_login_and_me_contract(client):
         "tenant_id",
         "default_branch_id",
     }
-    assert me_payload["email"] == "tenant@t1.test"
+    assert me_payload["email"] == "tenant@t1.example.com"
     assert me_payload["role"] == "tenant_admin"
 
 
 def test_login_error_contracts(client):
     invalid_password = client.post(
         "/auth/login",
-        json={"email": "tenant@t1.test", "password": "wrong-password"},
+        json={"email": "tenant@t1.example.com", "password": "wrong-password"},
     )
     assert invalid_password.status_code == 401
     assert invalid_password.json()["detail"] == "Invalid credentials"
 
     inactive_user = client.post(
         "/auth/login",
-        json={"email": "seller@t2.test", "password": "Pass1234!"},
+        json={"email": "seller@t2.example.com", "password": "Pass1234!"},
     )
     assert inactive_user.status_code == 403
     assert inactive_user.json()["detail"] == "User inactive"
@@ -65,13 +65,13 @@ def test_user_errors_contract(client, auth_headers):
     assert not_found.status_code == 404
     assert not_found.json()["detail"] == "Not found"
 
-    forbidden = client.get("/users/5", headers=auth_headers("tenant@t1.test"))
+    forbidden = client.get("/users/5", headers=auth_headers("tenant@t1.example.com"))
     assert forbidden.status_code == 403
     assert forbidden.json()["detail"] == "Forbidden"
 
 
 def test_list_users_response_shape(client, auth_headers):
-    response = client.get("/users", headers=auth_headers("branch@t1.test"))
+    response = client.get("/users", headers=auth_headers("branch@t1.example.com"))
     assert response.status_code == 200
 
     payload = response.json()

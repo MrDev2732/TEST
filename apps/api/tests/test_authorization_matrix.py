@@ -1,9 +1,9 @@
 import pytest
 
 ACTORS = {
-    "seller": "seller@t1.test",
-    "branch_admin": "branch@t1.test",
-    "tenant_admin": "tenant@t1.test",
+    "seller": "seller@t1.example.com",
+    "branch_admin": "branch@t1.example.com",
+    "tenant_admin": "tenant@t1.example.com",
     "platform_admin": "platform@test.com",
 }
 

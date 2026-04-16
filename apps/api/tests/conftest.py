@@ -44,7 +44,7 @@ def db_session() -> Generator[Session, None, None]:
         users = [
             User(
                 id=1,
-                email="seller@t1.test",
+                email="seller@t1.example.com",
                 full_name="Seller T1",
                 status="active",
                 tenant_id=1,
@@ -54,7 +54,7 @@ def db_session() -> Generator[Session, None, None]:
             ),
             User(
                 id=2,
-                email="branch@t1.test",
+                email="branch@t1.example.com",
                 full_name="Branch Admin T1",
                 status="active",
                 tenant_id=1,
@@ -64,7 +64,7 @@ def db_session() -> Generator[Session, None, None]:
             ),
             User(
                 id=3,
-                email="tenant@t1.test",
+                email="tenant@t1.example.com",
                 full_name="Tenant Admin T1",
                 status="active",
                 tenant_id=1,
@@ -84,7 +84,7 @@ def db_session() -> Generator[Session, None, None]:
             ),
             User(
                 id=5,
-                email="tenant@t2.test",
+                email="tenant@t2.example.com",
                 full_name="Tenant Admin T2",
                 status="active",
                 tenant_id=2,
@@ -94,7 +94,7 @@ def db_session() -> Generator[Session, None, None]:
             ),
             User(
                 id=6,
-                email="seller@t2.test",
+                email="seller@t2.example.com",
                 full_name="Seller T2",
                 status="inactive",
                 tenant_id=2,
