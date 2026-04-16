@@ -1,4 +1,4 @@
-name: CI
+name: API Quality CI
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  api-checks:
+  api-quality-checks:
     runs-on: ubuntu-latest
     defaults:
       run:

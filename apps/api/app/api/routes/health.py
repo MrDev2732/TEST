@@ -18,7 +18,12 @@ def health():
 @router.get("/ready")
 def ready(db: Session = Depends(get_db)):
     try:
-        db.execute(text("SET LOCAL statement_timeout = :timeout_ms"), {"timeout_ms": READINESS_DB_TIMEOUT_MS})
+        bind = db.get_bind()
+        dialect_name = getattr(bind.dialect, "name", "") if bind is not None else ""
+
+        if dialect_name == "postgresql":
+            db.execute(text("SET LOCAL statement_timeout = :timeout_ms"), {"timeout_ms": READINESS_DB_TIMEOUT_MS})
+
         db.execute(text("SELECT 1"))
     except SQLAlchemyError as exc:
         raise HTTPException(

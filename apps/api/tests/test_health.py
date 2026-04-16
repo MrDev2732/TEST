@@ -5,12 +5,25 @@ from sqlalchemy.exc import OperationalError
 from app.api.routes.health import health, ready
 
 
+class _Bind:
+    class _Dialect:
+        name = "postgresql"
+
+    dialect = _Dialect()
+
+
 class _HealthySession:
+    def get_bind(self):
+        return _Bind()
+
     def execute(self, _query, _params=None):
         return 1
 
 
 class _FailingSession:
+    def get_bind(self):
+        return _Bind()
+
     def execute(self, _query, _params=None):
         raise OperationalError("SELECT 1", {}, Exception("boom"))
 
