@@ -6,9 +6,11 @@ from app.api.routes.roles import router as roles_router
 from app.api.routes.tenants import router as tenants_router
 from app.api.routes.branches import router as branches_router
 from app.api.routes.users import router as users_router
+from app.api.exception_handlers import register_exception_handlers
 from app.core.config import settings
 
 app = FastAPI(title=settings.app_name)
+register_exception_handlers(app)
 
 app.include_router(health_router)
 app.include_router(auth_router)

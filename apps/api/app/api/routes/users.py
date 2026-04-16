@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.models.models import User
 from app.repositories.repository import CRUDRepository
 from app.schemas.user import UserCreate, UserRead, UserUpdate
+from app.services.user_service import create_user as create_user_tx, patch_user as patch_user_tx
 
 router = APIRouter(prefix="/users", tags=["users"])
 repo = CRUDRepository(User)
@@ -25,7 +26,7 @@ def create_user(payload: UserCreate, current: CurrentUser = Depends(require_role
     if current.role.name == "tenant_admin":
         data["tenant_id"] = current.user.tenant_id
     data["password_hash"] = hash_password(payload.password)
-    return repo.create(db, data)
+    return create_user_tx(db, data)
 
 
 @router.get("/{user_id}", response_model=UserRead)
@@ -48,4 +49,4 @@ def patch_user(user_id: int, payload: UserUpdate, current: CurrentUser = Depends
     data = payload.model_dump(exclude_none=True)
     if current.role.name == "tenant_admin":
         data.pop("tenant_id", None)
-    return repo.update(db, entity, data)
+    return patch_user_tx(db, entity, data)

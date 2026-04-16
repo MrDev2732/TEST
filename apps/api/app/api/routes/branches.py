@@ -6,6 +6,7 @@ from app.db.session import get_db
 from app.models.models import Branch
 from app.repositories.repository import CRUDRepository
 from app.schemas.branch import BranchCreate, BranchRead, BranchUpdate
+from app.services.branch_service import create_branch as create_branch_tx, patch_branch as patch_branch_tx
 
 router = APIRouter(prefix="/branches", tags=["branches"])
 repo = CRUDRepository(Branch)
@@ -22,7 +23,7 @@ def list_branches(current: CurrentUser = Depends(require_roles("platform_admin",
 def create_branch(payload: BranchCreate, current: CurrentUser = Depends(require_roles("platform_admin", "tenant_admin")), db: Session = Depends(get_db)):
     if current.role.name == "tenant_admin" and payload.tenant_id != current.user.tenant_id:
         raise HTTPException(status_code=403, detail="Forbidden tenant")
-    return repo.create(db, payload.model_dump())
+    return create_branch_tx(db, payload.model_dump())
 
 
 @router.get("/{branch_id}", response_model=BranchRead)
@@ -42,4 +43,4 @@ def patch_branch(branch_id: int, payload: BranchUpdate, current: CurrentUser = D
         raise HTTPException(status_code=404, detail="Not found")
     if current.role.name != "platform_admin" and entity.tenant_id != current.user.tenant_id:
         raise HTTPException(status_code=403, detail="Forbidden")
-    return repo.update(db, entity, payload.model_dump(exclude_none=True))
+    return patch_branch_tx(db, entity, payload.model_dump(exclude_none=True))
