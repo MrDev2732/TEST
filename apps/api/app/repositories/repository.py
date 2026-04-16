@@ -18,13 +18,9 @@ class CRUDRepository:
     def create(self, db: Session, payload: dict):
         entity = self.model(**payload)
         db.add(entity)
-        db.commit()
-        db.refresh(entity)
         return entity
 
     def update(self, db: Session, entity, payload: dict):
         for key, value in payload.items():
             setattr(entity, key, value)
-        db.commit()
-        db.refresh(entity)
         return entity
