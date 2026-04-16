@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -10,5 +10,10 @@ router = APIRouter(prefix="/roles", tags=["roles"])
 
 
 @router.get("", response_model=list[RoleRead])
-def list_roles(_: object = Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(Role).order_by(Role.id).all()
+def list_roles(
+    _: object = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+):
+    return db.query(Role).order_by(Role.id).offset(offset).limit(limit).all()

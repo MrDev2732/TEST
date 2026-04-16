@@ -5,12 +5,19 @@ class CRUDRepository:
     def __init__(self, model):
         self.model = model
 
-    def list(self, db: Session, filters: list | None = None):
+    def list(
+        self,
+        db: Session,
+        filters: list | None = None,
+        *,
+        limit: int = 100,
+        offset: int = 0,
+    ):
         query = db.query(self.model)
         if filters:
             for expr in filters:
                 query = query.filter(expr)
-        return query.order_by(self.model.id).all()
+        return query.order_by(self.model.id).offset(offset).limit(limit).all()
 
     def get(self, db: Session, entity_id: int):
         return db.query(self.model).filter(self.model.id == entity_id).first()

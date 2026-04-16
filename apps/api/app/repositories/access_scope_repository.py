@@ -8,7 +8,9 @@ class AccessScopeRepository:
         rows = (
             db.query(UserBranchAssignment.branch_id)
             .join(Branch, Branch.id == UserBranchAssignment.branch_id)
+            .join(User, User.id == UserBranchAssignment.user_id)
             .filter(UserBranchAssignment.user_id == user_id)
+            .filter(User.tenant_id == Branch.tenant_id)
             .order_by(UserBranchAssignment.branch_id)
             .all()
         )
@@ -21,6 +23,7 @@ class AccessScopeRepository:
             db.query(User)
             .join(UserBranchAssignment, UserBranchAssignment.user_id == User.id)
             .join(Branch, Branch.id == UserBranchAssignment.branch_id)
+            .filter(User.tenant_id == Branch.tenant_id)
             .filter(UserBranchAssignment.branch_id.in_(branch_ids))
             .distinct()
             .order_by(User.id)
@@ -34,7 +37,7 @@ class AccessScopeRepository:
             db.query(User.id)
             .join(UserBranchAssignment, UserBranchAssignment.user_id == User.id)
             .join(Branch, Branch.id == UserBranchAssignment.branch_id)
-            .filter(User.id == user_id, UserBranchAssignment.branch_id.in_(branch_ids))
+            .filter(User.id == user_id, UserBranchAssignment.branch_id.in_(branch_ids), User.tenant_id == Branch.tenant_id)
             .first()
             is not None
         )

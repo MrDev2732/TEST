@@ -15,9 +15,11 @@ services:
       target: prod
     working_dir: /app
     environment:
-      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/foodtruck
-      JWT_SECRET_KEY: super-secret-key
-      JWT_ACCESS_TOKEN_EXPIRES_MINUTES: 60
+      APP_ENV: prod
+      APP_DEBUG: "false"
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ACCESS_TOKEN_EXPIRES_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRES_MINUTES:-60}
     depends_on:
       - db
     ports:
