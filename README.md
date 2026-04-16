@@ -1,30 +1,96 @@
-# FoodTruck SaaS — Sprint 1
+# FoodTruck SaaS — Contexto completo del proyecto (Sprint 1)
 
-Plataforma SaaS web mobile-first para food trucks, cafeterías y pequeños locales gastronómicos.
+Plataforma SaaS **web mobile-first** para pequeños negocios gastronómicos: food trucks, cafeterías, dark kitchens y locales pequeños con una o más sucursales.
 
-## Propósito
+---
 
-Este Sprint 1 implementa la fundación técnica del producto con arquitectura preparada para evolución sin reescrituras mayores.
+## 1) ¿De qué se trata este proyecto?
 
-## Alcance Sprint 1
+Este repositorio contiene la **base fundacional** de un producto SaaS que busca resolver operación gastronómica diaria de forma simple desde celular, sin perder capacidad de escalar a operación multi-sucursal y multi-tenant.
 
-- Frontend base con Next.js + TypeScript + Tailwind.
-- Backend base con FastAPI + PostgreSQL + SQLAlchemy + Alembic.
+La idea no es construir todo en el primer sprint, sino construir una base sólida que evite reescrituras costosas en próximos sprints.
+
+---
+
+## 2) ¿Hacia dónde va el producto?
+
+La visión de producto evoluciona por iteraciones:
+
+1. **Sprint 1 (actual):** fundación técnica + autenticación + dominio multi-tenant/multi-sucursal.
+2. **Siguientes sprints:** catálogo de productos, pedidos, stock, métricas, comprobantes e infraestructura más robusta.
+
+Objetivo estratégico: pasar de operación básica a una plataforma profesional para negocios gastronómicos emergentes.
+
+---
+
+## 3) Principios de arquitectura (desde día 1)
+
+- **Multi-tenant por diseño:** aislamiento lógico por negocio (tenant).
+- **Multi-sucursal por dominio:** contexto branch desde modelos y casos de uso.
+- **Autorización en backend:** el frontend refleja permisos, no decide seguridad.
+- **Monolito modular:** velocidad de entrega + mantenibilidad.
+- **Mobile-first en frontend:** operación principal desde pantallas pequeñas.
+- **Cloud-native en GCP:** preparada para Cloud Run + Cloud SQL + Secret Manager.
+
+---
+
+## 4) Alcance exacto de Sprint 1 (lo que SÍ construimos)
+
+- Frontend base con **Next.js + TypeScript + Tailwind**.
+- Backend base con **FastAPI + PostgreSQL + SQLAlchemy + Alembic**.
 - Autenticación funcional con JWT.
-- Multi-tenant y multi-sucursal desde el modelo de datos.
-- Roles base: `seller`, `branch_admin`, `tenant_admin`, `platform_admin`.
-- Rutas protegidas por autenticación/rol.
-- CRUD mínimo de tenants, branches y users.
-- Lectura de roles.
-- Seed demo con 1 tenant, 2 branches, 4 users.
-- Docker y docker-compose para ejecución local.
-- Documentación mínima + guía de preparación para GCP Cloud Run / Cloud SQL.
+- Contexto multi-tenant y multi-sucursal.
+- Roles base:
+  - `seller`
+  - `branch_admin`
+  - `tenant_admin`
+  - `platform_admin`
+- Rutas protegidas por autenticación y rol.
+- CRUD mínimo de:
+  - `tenants`
+  - `branches`
+  - `users`
+  - `roles` (solo lectura)
+- Migración inicial + seed demo.
+- Docker + docker-compose para ejecución local.
+- Documentación mínima de arquitectura y preparación para GCP.
 
-## Fuera de alcance
+---
 
-No incluye pedidos, stock, dashboard real, comprobantes, billing ni reportes avanzados.
+## 5) Qué NO construimos en Sprint 1 (límite de diseño)
 
-## Estructura
+Este punto es crítico para mantener el sprint sano.
+
+No se implementa aún:
+- pedidos,
+- order items,
+- stock,
+- dashboard real,
+- reportes,
+- comprobantes/PDF,
+- billing SaaS,
+- permisos granulares avanzados,
+- integraciones externas complejas,
+- paneles y módulos prematuros.
+
+> Regla de oro del Sprint 1: construir base estable, no sobre-ingeniería.
+
+---
+
+## 6) Estado esperado al terminar Sprint 1
+
+Al cerrar este sprint, el sistema queda en esta situación:
+
+- puedes autenticarte,
+- puedes distinguir tenants y sucursales,
+- puedes gestionar usuarios básicos,
+- puedes proteger acceso por rol,
+- tienes entorno local y base lista para staging,
+- el proyecto está preparado para crecer sin reescritura.
+
+---
+
+## 7) Estructura del repositorio
 
 ```txt
 apps/
@@ -35,9 +101,17 @@ scripts/
 packages/
 ```
 
-## Backend
+- `apps/api`: backend FastAPI modular.
+- `apps/web`: frontend Next.js mobile-first.
+- `docs`: arquitectura y guía inicial GCP.
+- `scripts`: utilidades de arranque.
+- `packages/shared-types`: reservado para tipados compartidos futuros.
 
-Módulos disponibles:
+---
+
+## 8) Backend (detalle)
+
+Módulos implementados:
 - `auth`
 - `tenants`
 - `branches`
@@ -54,18 +128,34 @@ Endpoints principales:
 - `GET/POST/GET by id/PATCH /branches`
 - `GET/POST/GET by id/PATCH /users`
 
-## Frontend
+### Entidades mínimas
+- `tenants`
+- `branches`
+- `roles`
+- `users`
+- `user_branch_assignments`
 
-Rutas:
+### Reglas relevantes
+- Entidades tenant-scoped incluyen `tenant_id`.
+- Contexto de tenant se controla en backend según usuario autenticado.
+- El frontend no define autorización.
+
+---
+
+## 9) Frontend (detalle)
+
+Rutas base:
 - `/login`
 - `/seller`
 - `/branch-admin`
 - `/tenant-admin`
 - `/platform-admin`
 
-Cada vista está protegida por `RoleGuard` consultando `GET /auth/me`.
+Cada vista protegida valida sesión/token y consulta `/auth/me` para validar rol.
 
-## Cómo correr local
+---
+
+## 10) Cómo correr localmente
 
 ### Opción recomendada
 
@@ -80,12 +170,13 @@ Servicios:
 ### Credenciales demo
 
 Password para todos: `Pass1234!`
-- seller@demo.com
-- branch@demo.com
-- tenant@demo.com
-- platform@demo.com
 
-## Migraciones y seed manuales
+- `seller@demo.com`
+- `branch@demo.com`
+- `tenant@demo.com`
+- `platform@demo.com`
+
+### Migración + seed manual (backend)
 
 ```bash
 cd apps/api
@@ -94,10 +185,29 @@ python scripts_seed.py
 uvicorn app.main:app --reload
 ```
 
-## Principios de diseño aplicados
+---
 
-- `tenant_id` en entidades tenant-scoped.
-- Preparación de contexto `branch_id` para operación futura.
-- Autorización resuelta en backend; frontend no determina permisos.
-- Tenant derivado del usuario autenticado para roles tenant-scoped.
-- Monolito modular para acelerar iteración manteniendo mantenibilidad.
+## 11) Preparación para deploy (GCP)
+
+Objetivo inicial (sin complejidad excesiva aún):
+- Cloud Run para `api` y `web`.
+- Cloud SQL PostgreSQL para datos.
+- Secret Manager para `DATABASE_URL` y `JWT_SECRET_KEY`.
+
+Más detalle en:
+- `docs/architecture.md`
+- `docs/gcp.md`
+
+---
+
+## 12) Filosofía de evolución
+
+Este proyecto evoluciona por sprints cortos con foco en valor real:
+
+- construir lo necesario,
+- evitar tablas y abstracciones prematuras,
+- mantener código simple y extensible,
+- validar rápido con negocio,
+- preparar el terreno para módulos operativos (productos/pedidos/stock) en próximas iteraciones.
+
+Si en Sprint 2 se necesita backlog técnico detallado (historias + tareas + criterios de aceptación), se puede desglosar a partir de esta base.
