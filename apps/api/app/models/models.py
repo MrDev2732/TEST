@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.session import Base
 
@@ -17,7 +17,10 @@ class Tenant(Base):
 
 class Branch(Base):
     __tablename__ = "branches"
-    __table_args__ = (UniqueConstraint("tenant_id", "code", name="uq_branch_tenant_code"),)
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "code", name="uq_branch_tenant_code"),
+        UniqueConstraint("tenant_id", "id", name="uq_branch_tenant_id_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True)
@@ -39,6 +42,17 @@ class Role(Base):
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["tenant_id", "default_branch_id"],
+            ["branches.tenant_id", "branches.id"],
+            name="fk_users_default_branch_tenant_consistency",
+        ),
+        CheckConstraint(
+            "default_branch_id IS NULL OR tenant_id IS NOT NULL",
+            name="ck_users_default_branch_requires_tenant",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     auth_provider_user_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -57,6 +71,11 @@ class User(Base):
 
 class UserBranchAssignment(Base):
     __tablename__ = "user_branch_assignments"
+    __table_args__ = (
+        UniqueConstraint("user_id", "branch_id", name="uq_user_branch_assignments_user_branch"),
+        Index("ix_user_branch_assignments_user_id", "user_id"),
+        Index("ix_user_branch_assignments_branch_id", "branch_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
