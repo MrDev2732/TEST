@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.api.deps import CurrentUser, require_roles
+from app.api.deps import AccessScope, CurrentUser, get_access_scope, require_roles
 from app.core.security import hash_password
 from app.db.session import get_db
 from app.models.models import User
+from app.repositories.access_scope_repository import AccessScopeRepository
 from app.repositories.repository import CRUDRepository
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 from app.services import user_service
@@ -12,13 +13,20 @@ from app.services.user_service import validate_default_branch_tenant_consistency
 
 router = APIRouter(prefix="/users", tags=["users"])
 repo = CRUDRepository(User)
+access_scope_repo = AccessScopeRepository()
 
 
 @router.get("", response_model=list[UserRead])
-def list_users(current: CurrentUser = Depends(require_roles("platform_admin", "tenant_admin", "branch_admin")), db: Session = Depends(get_db)):
+def list_users(
+    current: CurrentUser = Depends(require_roles("platform_admin", "tenant_admin", "branch_admin")),
+    scope: AccessScope = Depends(get_access_scope),
+    db: Session = Depends(get_db),
+):
     if current.role.name == "platform_admin":
         return repo.list(db)
-    return repo.list(db, [User.tenant_id == current.user.tenant_id])
+    if current.role.name == "branch_admin":
+        return access_scope_repo.list_users_in_branches(db, scope.branch_ids or [])
+    return repo.list(db, [User.tenant_id == scope.tenant_id])
 
 
 @router.post("", response_model=UserRead)
@@ -31,23 +39,43 @@ def create_user(payload: UserCreate, current: CurrentUser = Depends(require_role
     return user_service.create_user(db, data)
 
 
+def _validate_user_scope(entity: User, current: CurrentUser, scope: AccessScope, db: Session) -> None:
+    if current.role.name == "platform_admin":
+        return
+    if current.role.name == "branch_admin":
+        if not access_scope_repo.user_in_branches(db, entity.id, scope.branch_ids or []):
+            raise HTTPException(status_code=403, detail="Forbidden")
+        return
+    if entity.tenant_id != scope.tenant_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+
 @router.get("/{user_id}", response_model=UserRead)
-def get_user(user_id: int, current: CurrentUser = Depends(require_roles("platform_admin", "tenant_admin", "branch_admin")), db: Session = Depends(get_db)):
+def get_user(
+    user_id: int,
+    current: CurrentUser = Depends(require_roles("platform_admin", "tenant_admin", "branch_admin")),
+    scope: AccessScope = Depends(get_access_scope),
+    db: Session = Depends(get_db),
+):
     entity = repo.get(db, user_id)
     if not entity:
         raise HTTPException(status_code=404, detail="Not found")
-    if current.role.name != "platform_admin" and entity.tenant_id != current.user.tenant_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
+    _validate_user_scope(entity, current, scope, db)
     return entity
 
 
 @router.patch("/{user_id}", response_model=UserRead)
-def patch_user(user_id: int, payload: UserUpdate, current: CurrentUser = Depends(require_roles("platform_admin", "tenant_admin")), db: Session = Depends(get_db)):
+def patch_user(
+    user_id: int,
+    payload: UserUpdate,
+    current: CurrentUser = Depends(require_roles("platform_admin", "tenant_admin")),
+    scope: AccessScope = Depends(get_access_scope),
+    db: Session = Depends(get_db),
+):
     entity = repo.get(db, user_id)
     if not entity:
         raise HTTPException(status_code=404, detail="Not found")
-    if current.role.name != "platform_admin" and entity.tenant_id != current.user.tenant_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
+    _validate_user_scope(entity, current, scope, db)
     data = payload.model_dump(exclude_none=True)
     if current.role.name == "tenant_admin":
         data.pop("tenant_id", None)

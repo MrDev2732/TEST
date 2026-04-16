@@ -95,3 +95,24 @@ def test_list_users_response_shape(client, auth_headers):
 
     datetime.fromisoformat(first["created_at"])
     datetime.fromisoformat(first["updated_at"])
+
+
+def test_branch_admin_list_users_is_branch_scoped(client, auth_headers):
+    response = client.get("/users", headers=auth_headers("branch@t1.example.com"))
+    assert response.status_code == 200
+    emails = {item["email"] for item in response.json()}
+    assert "seller2@t1.example.com" not in emails
+
+
+def test_branch_scoped_branch_access(client, auth_headers):
+    forbidden_get = client.get("/branches/3", headers=auth_headers("branch@t1.example.com"))
+    assert forbidden_get.status_code == 403
+    assert forbidden_get.json()["detail"] == "Forbidden"
+
+    forbidden_patch = client.patch(
+        "/branches/3",
+        headers=auth_headers("branch@t1.example.com"),
+        json={"name": "Blocked update"},
+    )
+    assert forbidden_patch.status_code == 403
+    assert forbidden_patch.json()["detail"] == "Forbidden"

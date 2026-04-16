@@ -53,9 +53,11 @@ ACTORS = {
             200,
         ),
         ("seller", "get", "/branches/2", None, 403),
+        ("branch_admin", "get", "/branches/3", None, 403),
         ("platform_admin", "get", "/branches/2", None, 200),
         ("seller", "get", "/users", None, 403),
         ("branch_admin", "get", "/users", None, 200),
+        ("branch_admin", "get", "/users/7", None, 403),
         ("tenant_admin", "get", "/users/5", None, 403),
         ("platform_admin", "get", "/users/5", None, 200),
         (
