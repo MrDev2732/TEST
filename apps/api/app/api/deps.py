@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.session import get_db
-from app.models.models import Role, User
+from app.models.models import User, Role
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -33,8 +33,6 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if not user:
         raise credentials_exception
     role = db.query(Role).filter(Role.id == user.role_id).first()
-    if not role:
-        raise credentials_exception
     return CurrentUser(user=user, role=role)
 
 

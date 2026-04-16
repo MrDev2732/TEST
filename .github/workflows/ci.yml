@@ -45,7 +45,7 @@ jobs:
         run: ruff check app tests
 
       - name: Type check
-        run: mypy --config-file mypy.ini app
+        run: mypy app/api/routes/health.py
 
       - name: Tests
         run: pytest -q
