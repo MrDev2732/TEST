@@ -1,0 +1,37 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: foodtruck
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: ./apps/api
+    working_dir: /app
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/foodtruck
+      JWT_SECRET_KEY: super-secret-key
+      JWT_ACCESS_TOKEN_EXPIRES_MINUTES: 60
+    depends_on:
+      - db
+    ports:
+      - '8000:8000'
+    command: bash -c "alembic upgrade head && python scripts_seed.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  web:
+    build: ./apps/web
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      - api
+    ports:
+      - '3000:3000'
+
+volumes:
+  pgdata:
