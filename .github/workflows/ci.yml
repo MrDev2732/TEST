@@ -48,7 +48,7 @@ jobs:
         run: mypy app/api/routes/health.py
 
       - name: Tests
-        run: PYTHONPATH=. pytest -q
+        run: PYTHONPATH=. python -m pytest -q
 
       - name: Alembic dry-run
         run: PYTHONPATH=. alembic upgrade head --sql > /tmp/alembic_dry_run.sql
