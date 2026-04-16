@@ -75,6 +75,7 @@ class UserBranchAssignment(Base):
         UniqueConstraint("user_id", "branch_id", name="uq_user_branch_assignments_user_branch"),
         Index("ix_user_branch_assignments_user_id", "user_id"),
         Index("ix_user_branch_assignments_branch_id", "branch_id"),
+        Index("ix_user_branch_assignments_branch_user", "branch_id", "user_id"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

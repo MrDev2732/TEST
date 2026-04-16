@@ -10,7 +10,7 @@ from app.api.deps import get_db
 from app.core.security import create_access_token, hash_password
 from app.db.session import Base
 from app.main import app
-from app.models.models import Branch, Role, Tenant, User
+from app.models.models import Branch, Role, Tenant, User, UserBranchAssignment
 
 
 @pytest.fixture()
@@ -39,7 +39,8 @@ def db_session() -> Generator[Session, None, None]:
 
         branch_1 = Branch(id=1, tenant_id=1, name="T1 Main", code="T1M", status="active")
         branch_2 = Branch(id=2, tenant_id=2, name="T2 Main", code="T2M", status="active")
-        db.add_all([branch_1, branch_2])
+        branch_3 = Branch(id=3, tenant_id=1, name="T1 Secondary", code="T1S", status="active")
+        db.add_all([branch_1, branch_2, branch_3])
 
         users = [
             User(
@@ -102,8 +103,28 @@ def db_session() -> Generator[Session, None, None]:
                 default_branch_id=2,
                 password_hash=hash_password("Pass1234!"),
             ),
+            User(
+                id=7,
+                email="seller2@t1.example.com",
+                full_name="Seller T1 Branch 3",
+                status="active",
+                tenant_id=1,
+                role_id=1,
+                default_branch_id=3,
+                password_hash=hash_password("Pass1234!"),
+            ),
         ]
         db.add_all(users)
+
+        assignments = [
+            UserBranchAssignment(user_id=1, branch_id=1),
+            UserBranchAssignment(user_id=2, branch_id=1),
+            UserBranchAssignment(user_id=3, branch_id=1),
+            UserBranchAssignment(user_id=5, branch_id=2),
+            UserBranchAssignment(user_id=6, branch_id=2),
+            UserBranchAssignment(user_id=7, branch_id=3),
+        ]
+        db.add_all(assignments)
         db.commit()
 
         yield db
