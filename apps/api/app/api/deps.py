@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -5,7 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.session import get_db
-from app.models.models import User, Role
+from app.models.models import Role, User
+from app.repositories.repository import AccessScopeRepository
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -14,6 +17,12 @@ class CurrentUser:
     def __init__(self, user: User, role: Role):
         self.user = user
         self.role = role
+
+
+@dataclass
+class AccessScope:
+    tenant_id: int | None
+    branch_ids: list[int] | None
 
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> CurrentUser:
@@ -34,6 +43,17 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     role = db.query(Role).filter(Role.id == user.role_id).first()
     return CurrentUser(user=user, role=role)
+
+
+def get_access_scope(current: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)) -> AccessScope:
+    if current.role.name == "platform_admin":
+        return AccessScope(tenant_id=None, branch_ids=None)
+
+    if current.role.name == "branch_admin":
+        branch_ids = AccessScopeRepository().list_branch_ids_for_user(db, current.user.id)
+        return AccessScope(tenant_id=current.user.tenant_id, branch_ids=branch_ids)
+
+    return AccessScope(tenant_id=current.user.tenant_id, branch_ids=None)
 
 
 def require_roles(*allowed: str):
