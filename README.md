@@ -157,7 +157,15 @@ Cada vista protegida valida sesión/token y consulta `/auth/me` para validar rol
 
 ## 10) Cómo correr localmente
 
-### Opción recomendada
+### Configuración inicial de variables
+
+```bash
+cp .env.example .env
+```
+
+> `.env` es local y no se versiona. Nunca subas secretos reales al repositorio.
+
+### Levantar stack base (sin demo seed)
 
 ```bash
 docker compose up --build
@@ -167,7 +175,15 @@ Servicios:
 - API: http://localhost:8000
 - Web: http://localhost:3000
 
-### Credenciales demo
+### Perfil de desarrollo con seed demo explícito
+
+```bash
+docker compose --profile dev up --build
+```
+
+Este perfil ejecuta `api-seed-demo` para poblar usuarios demo.
+
+#### Credenciales demo (solo perfil `dev`)
 
 Password para todos: `Pass1234!`
 
@@ -193,6 +209,15 @@ Objetivo inicial (sin complejidad excesiva aún):
 - Cloud Run para `api` y `web`.
 - Cloud SQL PostgreSQL para datos.
 - Secret Manager para `DATABASE_URL` y `JWT_SECRET_KEY`.
+
+### Checklist de seguridad para despliegue
+
+- [ ] Definir `APP_ENV=prod` (o equivalente no-dev) en runtime.
+- [ ] Configurar `DATABASE_URL` desde Secret Manager/variables seguras, nunca hardcodeado.
+- [ ] Configurar `JWT_SECRET_KEY` aleatorio y único (mínimo 32 caracteres).
+- [ ] Verificar que `.env` no se comitea y que solo existe `.env.example` versionado.
+- [ ] No ejecutar `api-seed-demo` en staging/producción (perfil solo desarrollo).
+- [ ] Rotar secretos si hubo exposición accidental en historial o logs.
 
 Más detalle en:
 - `docs/architecture.md`
