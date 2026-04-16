@@ -1,9 +1,13 @@
 from datetime import datetime, timedelta, timezone
+
 from jose import jwt
 from passlib.context import CryptContext
+
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# NOTE: pbkdf2_sha256 avoids passlib/bcrypt backend incompatibilities that can
+# surface with newer bcrypt wheels during hashing and verification in CI.
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:

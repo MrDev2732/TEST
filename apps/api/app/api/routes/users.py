@@ -7,6 +7,8 @@ from app.db.session import get_db
 from app.models.models import User
 from app.repositories.repository import AccessScopeRepository, CRUDRepository
 from app.schemas.user import UserCreate, UserRead, UserUpdate
+from app.services import user_service
+from app.services.user_service import validate_default_branch_tenant_consistency
 
 router = APIRouter(prefix="/users", tags=["users"])
 repo = CRUDRepository(User)
@@ -31,8 +33,9 @@ def create_user(payload: UserCreate, current: CurrentUser = Depends(require_role
     data = payload.model_dump(exclude={"password"})
     if current.role.name == "tenant_admin":
         data["tenant_id"] = current.user.tenant_id
+    validate_default_branch_tenant_consistency(db, data.get("tenant_id"), data.get("default_branch_id"))
     data["password_hash"] = hash_password(payload.password)
-    return repo.create(db, data)
+    return user_service.create_user(db, data)
 
 
 @router.get("/{user_id}", response_model=UserRead)
@@ -78,4 +81,7 @@ def patch_user(
     if current.role.name == "branch_admin":
         data.pop("tenant_id", None)
         data.pop("role_id", None)
-    return repo.update(db, entity, data)
+    target_tenant_id = data.get("tenant_id", entity.tenant_id)
+    target_default_branch_id = data.get("default_branch_id", entity.default_branch_id)
+    validate_default_branch_tenant_consistency(db, target_tenant_id, target_default_branch_id)
+    return user_service.patch_user(db, entity, data)

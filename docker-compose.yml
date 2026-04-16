@@ -2,32 +2,57 @@ version: '3.9'
 services:
   db:
     image: postgres:16-alpine
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: foodtruck
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-foodtruck}
     ports:
       - '5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
 
   api:
-    build: ./apps/api
+    build:
+      context: ./apps/api
+      target: dev
     working_dir: /app
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/foodtruck
-      JWT_SECRET_KEY: super-secret-key
-      JWT_ACCESS_TOKEN_EXPIRES_MINUTES: 60
+      APP_ENV: ${APP_ENV:-prod}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ACCESS_TOKEN_EXPIRES_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRES_MINUTES:-60}
     depends_on:
       - db
     ports:
       - '8000:8000'
-    command: bash -c "alembic upgrade head && python scripts_seed.py && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    command: bash -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  api-seed-demo:
+    build: ./apps/api
+    working_dir: /app
+    profiles:
+      - dev
+    env_file:
+      - .env
+    environment:
+      APP_ENV: dev
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      DEMO_ADMIN_EMAIL: ${DEMO_ADMIN_EMAIL:-platform@demo.com}
+      DEMO_DEFAULT_PASSWORD: ${DEMO_DEFAULT_PASSWORD:-Pass1234!}
+    depends_on:
+      - db
+    command: bash -c "alembic upgrade head && python scripts_seed.py"
 
   web:
     build: ./apps/web
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     depends_on:
       - api
     ports:
