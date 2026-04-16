@@ -7,9 +7,9 @@ class Settings(BaseSettings):
     app_env: str = "dev"
     app_debug: bool = True
 
-    database_url: str | None = None
+    database_url: str = ""
 
-    jwt_secret_key: str | None = None
+    jwt_secret_key: str = ""
     jwt_algorithm: str = "HS256"
     jwt_access_token_expires_minutes: int = 60
 
@@ -20,16 +20,16 @@ class Settings(BaseSettings):
         env = self.app_env.lower().strip()
 
         if env == "dev":
-            if not self.database_url:
+            if not self.database_url.strip():
                 self.database_url = "postgresql+psycopg2://postgres:postgres@db:5432/foodtruck"
-            if not self.jwt_secret_key:
+            if not self.jwt_secret_key.strip():
                 self.jwt_secret_key = "dev-only-change-me"
             return self
 
-        if not self.database_url:
+        if not self.database_url.strip():
             raise ValueError("DATABASE_URL is required when APP_ENV is not dev")
 
-        if not self.jwt_secret_key:
+        if not self.jwt_secret_key.strip():
             raise ValueError("JWT_SECRET_KEY is required when APP_ENV is not dev")
 
         weak_secrets = {
@@ -41,7 +41,7 @@ class Settings(BaseSettings):
             "dev-only-change-me",
         }
         normalized_secret = self.jwt_secret_key.strip().lower()
-        if normalized_secret in weak_secrets or len(self.jwt_secret_key) < 32:
+        if normalized_secret in weak_secrets or len(self.jwt_secret_key.strip()) < 32:
             raise ValueError(
                 "JWT_SECRET_KEY is too weak for non-dev environments. "
                 "Use a unique random value with at least 32 characters."
