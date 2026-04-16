@@ -116,3 +116,24 @@ def test_branch_scoped_branch_access(client, auth_headers):
     )
     assert forbidden_patch.status_code == 403
     assert forbidden_patch.json()["detail"] == "Forbidden"
+
+
+def test_login_metrics_requires_platform_admin(client, auth_headers):
+    forbidden = client.get("/auth/login/metrics", headers=auth_headers("tenant@t1.example.com"))
+    assert forbidden.status_code == 403
+    assert forbidden.json()["detail"] == "Insufficient role"
+
+    allowed = client.get("/auth/login/metrics", headers=auth_headers("platform@test.com"))
+    assert allowed.status_code == 200
+    assert "blocked_ips_count" in allowed.json()
+
+
+def test_users_list_supports_pagination(client, auth_headers):
+    page_1 = client.get("/users?limit=2&offset=0", headers=auth_headers("platform@test.com"))
+    page_2 = client.get("/users?limit=2&offset=2", headers=auth_headers("platform@test.com"))
+
+    assert page_1.status_code == 200
+    assert page_2.status_code == 200
+    assert len(page_1.json()) == 2
+    assert len(page_2.json()) == 2
+    assert page_1.json()[0]["id"] != page_2.json()[0]["id"]

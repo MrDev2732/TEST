@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user
+from app.api.deps import CurrentUser, get_current_user, require_roles
 from app.core.login_protection import login_protection
 from app.db.session import get_db
 from app.schemas.auth import LoginRequest, TokenResponse
@@ -30,5 +30,5 @@ def me_route(current=Depends(get_current_user), db: Session = Depends(get_db)):
 
 
 @router.get("/login/metrics")
-def login_metrics():
+def login_metrics(_: CurrentUser = Depends(require_roles("platform_admin"))):
     return login_protection.get_metrics()

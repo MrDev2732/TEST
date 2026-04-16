@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import AccessScope, CurrentUser, get_access_scope, require_roles
@@ -8,6 +8,7 @@ from app.models.models import User
 from app.repositories.access_scope_repository import AccessScopeRepository
 from app.repositories.repository import CRUDRepository
 from app.schemas.user import UserCreate, UserRead, UserUpdate
+from app.services.policy_service import ensure_user_access
 from app.services import user_service
 from app.services.authorization_service import validate_role_assignment
 from app.services.user_service import validate_default_branch_tenant_consistency
@@ -22,17 +23,19 @@ def list_users(
     current: CurrentUser = Depends(require_roles("platform_admin", "tenant_admin", "branch_admin")),
     scope: AccessScope = Depends(get_access_scope),
     db: Session = Depends(get_db),
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
 ):
     if current.role.name == "platform_admin":
-        return repo.list(db)
+        return repo.list(db, limit=limit, offset=offset)
     if current.role.name == "branch_admin":
         return access_scope_repo.list_users_in_branches(db, scope.branch_ids or [])
-    return repo.list(db, [User.tenant_id == scope.tenant_id])
+    return repo.list(db, [User.tenant_id == scope.tenant_id], limit=limit, offset=offset)
 
 
 @router.post("", response_model=UserRead)
 def create_user(payload: UserCreate, current: CurrentUser = Depends(require_roles("platform_admin", "tenant_admin")), db: Session = Depends(get_db)):
-    if not validate_role_assignment(current.role.name, payload.role_id):
+    if not validate_role_assignment(db, current.role.name, payload.role_id):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     data = payload.model_dump(exclude={"password"})
@@ -44,18 +47,6 @@ def create_user(payload: UserCreate, current: CurrentUser = Depends(require_role
     data["password_hash"] = hash_password(payload.password)
     return user_service.create_user(db, data)
 
-
-def _validate_user_scope(entity: User, current: CurrentUser, scope: AccessScope, db: Session) -> None:
-    if current.role.name == "platform_admin":
-        return
-    if current.role.name == "branch_admin":
-        if not access_scope_repo.user_in_branches(db, entity.id, scope.branch_ids or []):
-            raise HTTPException(status_code=403, detail="Forbidden")
-        return
-    if entity.tenant_id != scope.tenant_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-
-
 @router.get("/{user_id}", response_model=UserRead)
 def get_user(
     user_id: int,
@@ -66,7 +57,7 @@ def get_user(
     entity = repo.get(db, user_id)
     if not entity:
         raise HTTPException(status_code=404, detail="Not found")
-    _validate_user_scope(entity, current, scope, db)
+    ensure_user_access(entity, current, scope, access_scope_repo, db)
     return entity
 
 
@@ -81,9 +72,9 @@ def patch_user(
     entity = repo.get(db, user_id)
     if not entity:
         raise HTTPException(status_code=404, detail="Not found")
-    _validate_user_scope(entity, current, scope, db)
+    ensure_user_access(entity, current, scope, access_scope_repo, db)
     data = payload.model_dump(exclude_none=True)
-    if payload.role_id is not None and not validate_role_assignment(current.role.name, payload.role_id):
+    if payload.role_id is not None and not validate_role_assignment(db, current.role.name, payload.role_id):
         raise HTTPException(status_code=403, detail="Forbidden")
     if current.role.name != "platform_admin" and payload.tenant_id is None and "tenant_id" in payload.model_fields_set:
         raise HTTPException(status_code=403, detail="Forbidden")
