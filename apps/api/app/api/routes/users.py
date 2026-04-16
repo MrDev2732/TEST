@@ -9,6 +9,7 @@ from app.repositories.access_scope_repository import AccessScopeRepository
 from app.repositories.repository import CRUDRepository
 from app.schemas.user import UserCreate, UserRead, UserUpdate
 from app.services import user_service
+from app.services.authorization_service import validate_role_assignment
 from app.services.user_service import validate_default_branch_tenant_consistency
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -31,7 +32,12 @@ def list_users(
 
 @router.post("", response_model=UserRead)
 def create_user(payload: UserCreate, current: CurrentUser = Depends(require_roles("platform_admin", "tenant_admin")), db: Session = Depends(get_db)):
+    if not validate_role_assignment(current.role.name, payload.role_id):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     data = payload.model_dump(exclude={"password"})
+    if current.role.name != "platform_admin" and payload.tenant_id is None:
+        raise HTTPException(status_code=403, detail="Forbidden")
     if current.role.name == "tenant_admin":
         data["tenant_id"] = current.user.tenant_id
     validate_default_branch_tenant_consistency(db, data.get("tenant_id"), data.get("default_branch_id"))
@@ -77,6 +83,10 @@ def patch_user(
         raise HTTPException(status_code=404, detail="Not found")
     _validate_user_scope(entity, current, scope, db)
     data = payload.model_dump(exclude_none=True)
+    if payload.role_id is not None and not validate_role_assignment(current.role.name, payload.role_id):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if current.role.name != "platform_admin" and payload.tenant_id is None and "tenant_id" in payload.model_fields_set:
+        raise HTTPException(status_code=403, detail="Forbidden")
     if current.role.name == "tenant_admin":
         data.pop("tenant_id", None)
     target_tenant_id = data.get("tenant_id", entity.tenant_id)
