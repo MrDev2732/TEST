@@ -1,5 +1,3 @@
-import asyncio
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -7,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 
-READINESS_DB_TIMEOUT_SECONDS = 0.5
+READINESS_DB_TIMEOUT_MS = 500
 
 router = APIRouter(tags=["health"])
 
@@ -18,14 +16,10 @@ def health():
 
 
 @router.get("/ready")
-async def ready(db: Session = Depends(get_db)):
+def ready(db: Session = Depends(get_db)):
     try:
-        await asyncio.wait_for(asyncio.to_thread(db.execute, text("SELECT 1")), timeout=READINESS_DB_TIMEOUT_SECONDS)
-    except TimeoutError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="database readiness check timed out",
-        ) from exc
+        db.execute(text("SET LOCAL statement_timeout = :timeout_ms"), {"timeout_ms": READINESS_DB_TIMEOUT_MS})
+        db.execute(text("SELECT 1"))
     except SQLAlchemyError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
