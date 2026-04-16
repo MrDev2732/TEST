@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.session import Base
 
@@ -57,6 +57,11 @@ class User(Base):
 
 class UserBranchAssignment(Base):
     __tablename__ = "user_branch_assignments"
+    __table_args__ = (
+        UniqueConstraint("user_id", "branch_id", name="uq_user_branch_assignment"),
+        Index("ix_user_branch_assignments_user_id", "user_id"),
+        Index("ix_user_branch_assignments_branch_id", "branch_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
