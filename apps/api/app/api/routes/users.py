@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.models.models import User
 from app.repositories.repository import CRUDRepository
 from app.schemas.user import UserCreate, UserRead, UserUpdate
+from app.services.authorization_service import validate_role_assignment
 
 router = APIRouter(prefix="/users", tags=["users"])
 repo = CRUDRepository(User)
@@ -22,8 +23,15 @@ def list_users(current: CurrentUser = Depends(require_roles("platform_admin", "t
 @router.post("", response_model=UserRead)
 def create_user(payload: UserCreate, current: CurrentUser = Depends(require_roles("platform_admin", "tenant_admin")), db: Session = Depends(get_db)):
     data = payload.model_dump(exclude={"password"})
+    if not validate_role_assignment(current.role.name, payload.role_id):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     if current.role.name == "tenant_admin":
         data["tenant_id"] = current.user.tenant_id
+
+    if current.role.name != "platform_admin" and data.get("tenant_id") is None:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     data["password_hash"] = hash_password(payload.password)
     return repo.create(db, data)
 
@@ -45,6 +53,13 @@ def patch_user(user_id: int, payload: UserUpdate, current: CurrentUser = Depends
         raise HTTPException(status_code=404, detail="Not found")
     if current.role.name != "platform_admin" and entity.tenant_id != current.user.tenant_id:
         raise HTTPException(status_code=403, detail="Forbidden")
+
+    if payload.role_id is not None and not validate_role_assignment(current.role.name, payload.role_id):
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    if current.role.name != "platform_admin" and payload.tenant_id is None and "tenant_id" in payload.model_fields_set:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     data = payload.model_dump(exclude_none=True)
     if current.role.name == "tenant_admin":
         data.pop("tenant_id", None)
