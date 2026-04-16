@@ -75,6 +75,35 @@ ACTORS = {
             },
             200,
         ),
+        (
+            "tenant_admin",
+            "post",
+            "/users",
+            {
+                "tenant_id": 1,
+                "email": "deny-platform-role@test.com",
+                "full_name": "Deny Platform Role",
+                "status": "active",
+                "role_id": 4,
+                "default_branch_id": 1,
+                "password": "Pass1234!",
+            },
+            403,
+        ),
+        (
+            "tenant_admin",
+            "patch",
+            "/users/1",
+            {"role_id": 4},
+            403,
+        ),
+        (
+            "tenant_admin",
+            "patch",
+            "/users/1",
+            {"tenant_id": None},
+            403,
+        ),
     ],
 )
 def test_authorization_matrix(client, auth_headers, actor, method, path, payload, expected_status):
