@@ -157,10 +157,16 @@ Cada vista protegida valida sesión/token y consulta `/auth/me` para validar rol
 
 ## 10) Cómo correr localmente
 
-### Opción recomendada
+### Opción recomendada (desarrollo)
 
 ```bash
 docker compose up --build
+```
+
+### Ejecución modo producción (sin `--reload`)
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build
 ```
 
 Servicios:
@@ -197,6 +203,7 @@ Objetivo inicial (sin complejidad excesiva aún):
 Más detalle en:
 - `docs/architecture.md`
 - `docs/gcp.md`
+- `docs/release-and-rollback.md`
 
 ---
 

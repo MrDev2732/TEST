@@ -1,7 +1,8 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from app.core.security import verify_password, create_access_token
-from app.models.models import User, Role
+
+from app.core.security import create_access_token, verify_password
+from app.models.models import Role, User
 
 
 def login(db: Session, email: str, password: str) -> str:
@@ -15,11 +16,12 @@ def login(db: Session, email: str, password: str) -> str:
 
 def me(db: Session, user: User) -> dict:
     role = db.query(Role).filter(Role.id == user.role_id).first()
+    role_name = role.name if role else "unknown"
     return {
         "id": user.id,
         "email": user.email,
         "full_name": user.full_name,
-        "role": role.name,
+        "role": role_name,
         "tenant_id": user.tenant_id,
         "default_branch_id": user.default_branch_id,
     }
